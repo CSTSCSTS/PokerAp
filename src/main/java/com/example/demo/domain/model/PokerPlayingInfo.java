@@ -1,6 +1,7 @@
 package com.example.demo.domain.model;
 
 import java.util.List;
+import java.util.Optional;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +24,18 @@ public class PokerPlayingInfo {
 
 	public enum Winner {
 		PLAYER, CPU, NOTHING;
+	}
+
+	public Optional<Role> getPlayerRole() {
+			return Optional.ofNullable(playerRole);
+	}
+
+	public Optional<Role> getComputerRole() {
+			return Optional.ofNullable(computerRole);
+	}
+
+	public Optional<Winner> getWinner() {
+			return Optional.ofNullable(winner);
 	}
 
 }

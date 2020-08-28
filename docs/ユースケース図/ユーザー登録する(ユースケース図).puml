@@ -1,9 +1,0 @@
-@startuml
-
-actor ユーザー
-
-package "ユーザー登録" {
-  ユーザー -right- (ユーザー登録をする)
-}
-
-@enduml

@@ -9,8 +9,11 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.client.ServiceInstance;
+import org.springframework.cloud.client.discovery.DiscoveryClient;
 import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.example.demo.domain.model.Card;
 import com.example.demo.domain.model.Money;
@@ -18,23 +21,29 @@ import com.example.demo.domain.model.PokerPlayingInfo;
 import com.example.demo.domain.model.PokerPlayingInfo.Winner;
 import com.example.demo.domain.model.Role;
 import com.example.demo.domain.model.checker.Checker;
+import com.example.demo.dto.MoneyDto;
 import com.example.demo.exception.IllegalBetException;
-import com.example.demo.repository.MoneyRepository;
 import com.example.demo.util.PokerUtil;
 
 @Service
 public class PokerService {
 
 	 @Autowired
-	 public MoneyRepository moneyRepository;
-
-	 @Autowired
 		protected MessageSource messageSource;
+
+		@Autowired
+	 private DiscoveryClient dc;
+
 
 // ベット額が所持金を超えていないことを確認後、ポーカーの初期情報を返す
 	public PokerPlayingInfo pokerPrepare(int userId, BigDecimal betMoney, boolean jokerIncluded) throws IllegalBetException {
 
-		Money money = moneyRepository.getMoney(userId);
+		RestTemplate restTemplate = new RestTemplate();
+		List<ServiceInstance> userApServiceList = dc.getInstances("UserAp");
+  ServiceInstance userApInstance = userApServiceList.get(0);
+		String getMoneyUrl = "http://" + userApInstance.getHost() + ":" + userApInstance.getPort() + "/money?userId={userId}";
+		// 所持金を取得
+  Money money = Money.convertMoney(restTemplate.getForEntity(getMoneyUrl, MoneyDto.class, userId).getBody());
 		// ベット額が所持金を超えている場合、例外を投げる
 		if(betMoney.compareTo(money.getMoney()) > 0) {
 		  throw new IllegalBetException(messageSource.getMessage("illegal.bet", null, Locale.JAPAN));
@@ -85,7 +94,7 @@ public class PokerService {
 		info.setComputerHands(afterCpuHandChange);
 		info.setComputerRole(roleCheck(afterCpuHandChange, checker));
 		info.setFinishedChange(true);
-		info.setWinner(WinOrLossJudge(info.getPlayerRole(), info.getComputerRole()));
+		info.setWinner(WinOrLossJudge(info.getPlayerRole().get(), info.getComputerRole().get()));
 
 		return info;
 
